@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SuperbMarket — Perspective-Taking Companion (v2)</title>
+<style>
+  /* ─── Reset & Base ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f4f6fb;
+    color: #1e2233;
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── BIW Reminder Strip ───────────────────────────────────────── */
+  .biw-strip {
+    background: linear-gradient(90deg, #1a4a7a 0%, #2563a8 100%);
+    color: #fff;
+    text-align: center;
+    padding: 9px 16px;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .biw-strip span {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .biw-pill {
+    background: rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-weight: 600;
+  }
+
+  /* ─── Header ───────────────────────────────────────────────────── */
+  header {
+    background: #fff;
+    border-bottom: 2px solid #e3e8f0;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 17px; color: #1a4a7a;
+  }
+  .logo-icon {
+    width: 34px; height: 34px; background: #1a4a7a; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 18px;
+  }
+  .participant-badge {
+    font-size: 13px; color: #555; background: #f0f4fa;
+    border: 1px solid #d0d8e8; border-radius: 20px; padding: 4px 14px;
+  }
+  .participant-badge strong { color: #1a4a7a; }
+
+  /* ─── Screen container ─────────────────────────────────────────── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ─── Login Screen ─────────────────────────────────────────────── */
+  .login-wrap {
+    min-height: calc(100vh - 60px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 16px;
+  }
+  .login-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(26,74,122,0.10);
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+  }
+  .login-card .study-badge {
+    display: inline-block;
+    background: #e8f0fb;
+    color: #1a4a7a;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 14px;
+    margin-bottom: 18px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .login-card h1 { font-size: 24px; color: #1a4a7a; margin-bottom: 6px; }
+  .login-card p { color: #667; font-size: 14px; margin-bottom: 28px; }
+  .form-group { text-align: left; margin-bottom: 20px; }
+  .form-group label { display: block; font-weight: 600; font-size: 13px; color: #444; margin-bottom: 6px; }
+  .form-group input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #d0d8e8;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    transition: border 0.2s;
+    color: #1e2233;
+  }
+  .form-group input:focus { border-color: #2563a8; }
+  .hint { font-size: 12px; color: #888; margin-top: 5px; }
+  .btn-primary {
+    background: #1a4a7a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+  .btn-primary:hover { background: #153d67; }
+  .login-footer { margin-top: 22px; font-size: 12px; color: #999; }
+
+  /* ─── Dashboard ────────────────────────────────────────────────── */
+  .page-content { max-width: 860px; margin: 0 auto; padding: 36px 20px 60px; }
+  .page-title { font-size: 22px; font-weight: 700; color: #1a4a7a; margin-bottom: 4px; }
+  .page-subtitle { font-size: 14px; color: #667; margin-bottom: 30px; }
+  .session-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .session-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 2px solid #e3e8f0;
+    padding: 22px 20px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .session-card.active-session {
+    border-color: #2563a8;
+    box-shadow: 0 2px 16px rgba(37,99,168,0.13);
+  }
+  .session-card.locked { opacity: 0.48; }
+  .session-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+  .session-title { font-size: 16px; font-weight: 700; color: #1a4a7a; margin-bottom: 4px; }
+  .session-desc { font-size: 13px; color: #667; margin-bottom: 14px; }
+  .session-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; border-radius: 20px; padding: 3px 11px;
+  }
+  .status-current { background: #dbeafe; color: #1a4a7a; }
+  .status-locked { background: #f3f4f6; color: #999; }
+  .status-done { background: #d1fae5; color: #065f46; }
+  .btn-start {
+    display: block; margin-top: 14px; text-align: center;
+    background: #1a4a7a; color: #fff; border: none; border-radius: 7px;
+    padding: 9px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.2s; width: 100%;
+  }
+  .btn-start:hover { background: #153d67; }
+
+  /* ─── Session Module ───────────────────────────────────────────── */
+  .session-header {
+    background: #fff;
+    border-bottom: 1px solid #e3e8f0;
+    padding: 16px 32px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .back-btn {
+    background: none; border: 1.5px solid #d0d8e8; border-radius: 7px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; color: #555;
+    transition: border-color 0.2s;
+  }
+  .back-btn:hover { border-color: #1a4a7a; color: #1a4a7a; }
+  .session-header-title { font-size: 17px; font-weight: 700; color: #1a4a7a; }
+  .session-header-sub { font-size: 13px; color: #888; margin-left: auto; }
+
+  /* Step progress bar */
+  .step-bar {
+    background: #fff;
+    border-bottom: 1px solid #e3e8f0;
+    padding: 0 32px;
+    display: flex;
+    align-items: stretch;
+  }
+  .step-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 22px 14px 0;
+    font-size: 13px; color: #aaa; cursor: default;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .step-item.active { color: #1a4a7a; border-bottom-color: #2563a8; font-weight: 600; }
+  .step-item.done { color: #065f46; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #e3e8f0; color: #888;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .step-item.active .step-num { background: #2563a8; color: #fff; }
+  .step-item.done .step-num { background: #10b981; color: #fff; }
+  .step-sep { color: #d0d8e8; padding: 14px 8px 14px 8px; font-size: 16px; }
+
+  /* Part panels */
+  .part-panel { display: none; }
+  .part-panel.active { display: block; }
+  .part-content { max-width: 740px; margin: 0 auto; padding: 36px 20px 60px; }
+
+  /* Section headings */
+  .section-heading {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #2563a8; margin-bottom: 12px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e3e8f0;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h3 { font-size: 16px; font-weight: 700; color: #1a4a7a; margin-bottom: 8px; }
+  .card p { color: #445; font-size: 14px; margin-bottom: 14px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* Orientation checklist (Part A) */
+  .orient-list {
+    list-style: none;
+    margin: 0; padding: 0;
+  }
+  .orient-list li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f4fa;
+    font-size: 14px; color: #334;
+  }
+  .orient-list li:last-child { border-bottom: none; }
+  .orient-icon {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: #dbeafe; color: #1a4a7a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; margin-top: 1px;
+  }
+
+  /* Prompt cards */
+  .prompt-card {
+    background: #f8fafd;
+    border-left: 4px solid #2563a8;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .prompt-card .prompt-q {
+    font-size: 14px; font-weight: 600; color: #1a4a7a; margin-bottom: 8px;
+  }
+  .prompt-card textarea {
+    width: 100%; min-height: 88px;
+    border: 1.5px solid #d0d8e8; border-radius: 7px;
+    padding: 10px 12px; font-size: 14px;
+    font-family: inherit; resize: vertical; outline: none;
+    transition: border 0.2s; color: #1e2233; background: #fff;
+    line-height: 1.5;
+  }
+  .prompt-card textarea:focus { border-color: #2563a8; }
+  .prompt-card input[type="text"] {
+    width: 100%; padding: 9px 12px;
+    border: 1.5px solid #d0d8e8; border-radius: 7px;
+    font-size: 14px; font-family: inherit; outline: none;
+    transition: border 0.2s; color: #1e2233; background: #fff;
+  }
+  .prompt-card input[type="text"]:focus { border-color: #2563a8; }
+  .word-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 4px; }
+
+  /* Emotion entry */
+  .emotion-entry-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 540px) { .emotion-entry-grid { grid-template-columns: 1fr; } }
+  .emotion-column h4 {
+    font-size: 13px; font-weight: 700; color: #1a4a7a;
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1.5px solid #e3e8f0;
+  }
+  .emotion-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .emotion-row input[type="text"] {
+    flex: 1; padding: 7px 10px; border: 1.5px solid #d0d8e8; border-radius: 6px;
+    font-size: 13px; outline: none; transition: border 0.2s; color: #1e2233;
+    background: #fff;
+  }
+  .emotion-row input[type="text"]:focus { border-color: #2563a8; }
+  .intensity-wrap { display: flex; align-items: center; gap: 5px; }
+  .intensity-wrap input[type="range"] {
+    width: 70px; accent-color: #2563a8; cursor: pointer;
+  }
+  .intensity-val {
+    min-width: 22px; text-align: center; font-size: 13px;
+    font-weight: 700; color: #1a4a7a;
+  }
+
+  /* Word bank */
+  .wordbank-toggle {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #e8f0fb; color: #1a4a7a; border: none; border-radius: 20px;
+    padding: 6px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-bottom: 14px; transition: background 0.2s;
+  }
+  .wordbank-toggle:hover { background: #d0e2f5; }
+  .wordbank-panel {
+    display: none;
+    background: #fff;
+    border: 1.5px solid #d0e2f5;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .wordbank-panel.open { display: block; }
+  .wordbank-panel h4 { font-size: 13px; font-weight: 700; color: #1a4a7a; margin-bottom: 12px; }
+  .wordbank-cats { display: flex; flex-wrap: wrap; gap: 14px; }
+  .wordbank-cat { flex: 1; min-width: 140px; }
+  .wordbank-cat .cat-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #2563a8; margin-bottom: 6px;
+  }
+  .word-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .word-chip {
+    background: #f0f4fa; color: #334; border-radius: 14px;
+    padding: 3px 10px; font-size: 12px; cursor: pointer;
+    border: 1px solid #d8e2f0; transition: background 0.15s;
+    user-select: none;
+  }
+  .word-chip:hover { background: #dbeafe; color: #1a4a7a; }
+
+  /* Info box */
+  .info-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px; color: #78350f;
+    margin-bottom: 20px;
+  }
+  .info-box strong { color: #92400e; }
+
+  /* Navigation buttons */
+  .nav-row {
+    display: flex; gap: 12px; justify-content: flex-end;
+    margin-top: 28px;
+  }
+  .btn-secondary {
+    background: #fff; color: #1a4a7a;
+    border: 1.5px solid #d0d8e8; border-radius: 8px;
+    padding: 11px 26px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .btn-secondary:hover { border-color: #1a4a7a; }
+  .btn-next {
+    background: #1a4a7a; color: #fff; border: none; border-radius: 8px;
+    padding: 11px 28px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .btn-next:hover { background: #153d67; }
+
+  /* Confirmation screen */
+  .confirm-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: calc(100vh - 120px);
+    text-align: center; padding: 40px 20px;
+  }
+  .confirm-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #d1fae5; display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 22px;
+  }
+  .confirm-wrap h2 { font-size: 24px; color: #1a4a7a; margin-bottom: 8px; }
+  .confirm-wrap p { font-size: 15px; color: #667; max-width: 440px; margin-bottom: 24px; }
+  .confirm-next-info {
+    background: #f0f4fa; border-radius: 10px; padding: 16px 24px;
+    font-size: 13px; color: #445; margin-bottom: 28px; max-width: 440px;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 600px) {
+    header { padding: 0 16px; }
+    .session-header { padding: 12px 16px; }
+    .step-bar { padding: 0 16px; overflow-x: auto; }
+    .part-content { padding: 24px 16px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     BIW STRIP (shown on all screens except login)
+════════════════════════════════════════════════════ -->
+<div class="biw-strip" id="biwStrip" style="display:none;">
+  <span>
+    <strong>Week 1 Reminder:</strong>
+    <span class="biw-pill">① Broaden</span> Name your emotion, then find two more words beneath it
+    <span class="biw-pill">② Intensity</span> Rate each emotion 1–10
+    <span class="biw-pill">③ Write</span> Go deep — explore what the emotion is telling you
+  </span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════════ -->
+<header id="siteHeader" style="display:none;">
+  <div class="logo">
+    <div class="logo-icon">🛒</div>
+    SuperbMarket
+  </div>
+  <div class="participant-badge" id="participantBadge">Participant <strong>—</strong></div>
+</header>
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 1: LOGIN
+═══════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="study-badge">Research Study · UWI St. Augustine</div>
+      <h1>SuperbMarket<br>Companion</h1>
+      <p>Perspective-Taking &amp; Reflective Practice Platform</p>
+
+      <div class="form-group">
+        <label for="participantCode">Your Participant Code</label>
+        <input type="text" id="participantCode" placeholder="e.g., PT-042" autocomplete="off" />
+        <div class="hint">This code was provided with your study information sheet. Your name is never stored.</div>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Enter Study Portal</button>
+
+      <div class="login-footer">
+        Participation is voluntary and will not affect your academic standing.<br>
+        All responses are confidential and stored under your anonymised code only.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 2: DASHBOARD
+═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="page-content">
+    <div class="page-title">Your Study Dashboard</div>
+    <div class="page-subtitle">Biweekly sessions run across Weeks 2–12. Complete each session after playing SuperbMarket.</div>
+
+    <div class="session-grid">
+      <!-- Session 1 — active -->
+      <div class="session-card active-session">
+        <div class="session-label">Week 2 · Session 1 of 6</div>
+        <div class="session-title">Making Decisions as Jo</div>
+        <div class="session-desc">Stay Calm &amp; Reflect. Map emotions for you and your employee. Write a synthesis reflection and transfer it to real life.</div>
+        <span class="session-status status-current">▶ Available now</span>
+        <button class="btn-start" onclick="startSession()">Begin Session →</button>
+      </div>
+      <!-- Sessions 2–6 — locked -->
+      <div class="session-card locked">
+        <div class="session-label">Week 4 · Session 2 of 6</div>
+        <div class="session-title">Seeing Through Lee's Eyes</div>
+        <div class="session-desc">Perspective essay: write a morning in Lee's life before work. Deepen your transfer reflection.</div>
+        <span class="session-status status-locked">🔒 Unlocks Week 4</span>
+      </div>
+      <div class="session-card locked">
+        <div class="session-label">Week 6 · Session 3 of 6</div>
+        <div class="session-title">The Curious Observer</div>
+        <div class="session-desc">Generate alternative explanations for character behaviour. Challenge dispositional attributions.</div>
+        <span class="session-status status-locked">🔒 Unlocks Week 6</span>
+      </div>
+      <div class="session-card locked">
+        <div class="session-label">Week 8 · Session 4 of 6</div>
+        <div class="session-title">The Kind Reframe</div>
+        <div class="session-desc">Rewrite a difficult moment with empathy. Practise choosing a different emotional response.</div>
+        <span class="session-status status-locked">🔒 Unlocks Week 8</span>
+      </div>
+      <div class="session-card locked">
+        <div class="session-label">Week 10 · Session 5 of 6</div>
+        <div class="session-title">Listening Below the Surface</div>
+        <div class="session-desc">Observe, listen, and ask. What are characters not saying? What nonverbal cues did you notice?</div>
+        <span class="session-status status-locked">🔒 Unlocks Week 10</span>
+      </div>
+      <div class="session-card locked">
+        <div class="session-label">Week 12 · Session 6 of 6</div>
+        <div class="session-title">Integration &amp; Growth</div>
+        <div class="session-desc">Bring it all together. Reflect on how your perspective-taking has evolved across the study.</div>
+        <span class="session-status status-locked">🔒 Unlocks Week 12</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 3: SESSION MODULE (Week 2 / Session 1)
+═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-session">
+
+  <div class="session-header">
+    <button class="back-btn" onclick="goTo('screen-dashboard')">← Dashboard</button>
+    <div class="session-header-title">Session 1 — Making Decisions as Jo</div>
+    <div class="session-header-sub">Week 2 &nbsp;|&nbsp; ~18 minutes</div>
+  </div>
+
+  <!-- Step progress bar -->
+  <div class="step-bar">
+    <div class="step-item active" id="step-A">
+      <div class="step-num">A</div> Pre-Game Orientation
+    </div>
+    <div class="step-sep">›</div>
+    <div class="step-item" id="step-B">
+      <div class="step-num">B</div> In-Game Reflection
+    </div>
+    <div class="step-sep">›</div>
+    <div class="step-item" id="step-C">
+      <div class="step-num">C</div> Transfer Reflection
+    </div>
+  </div>
+
+
+  <!-- ─── PART A: Pre-Game Orientation (reading + 1 light prompt) ── -->
+  <div class="part-panel active" id="panel-A">
+    <div class="part-content">
+      <div class="section-heading">Part A · Pre-Game Orientation</div>
+
+      <div class="card">
+        <h3>Before you open SuperbMarket…</h3>
+        <p>Take two minutes to read the points below. They will focus your attention so you get the most out of playing today.</p>
+
+        <ul class="orient-list">
+          <li>
+            <div class="orient-icon">①</div>
+            <div><strong>Watch your emotions as Jo.</strong> Notice what you feel at each decision point — not just whether a choice feels right or wrong, but what emotion is driving that feeling. Name it mentally.</div>
+          </li>
+          <li>
+            <div class="orient-icon">②</div>
+            <div><strong>Stay curious about your employee.</strong> Try to hold two questions in mind while you play: <em>What is Lee feeling right now?</em> and <em>Why might they be behaving this way?</em> Resist your first answer and look for a second.</div>
+          </li>
+          <li>
+            <div class="orient-icon">③</div>
+            <div><strong>Remember the BIW framework.</strong> After you play, you will be asked to name your emotions, rate their intensity (1–10), and write about them. The richer your in-game attention, the deeper your reflection will be.</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Flag Your Transfer Scenario</h3>
+        <p>Part C will ask you to reflect on a real-life interpersonal situation from the past two weeks. Before you start playing, briefly note what that situation is so it stays in mind.</p>
+        <div class="prompt-card" style="margin-bottom:0;">
+          <div class="prompt-q">In 1–2 sentences, describe the real-life situation you plan to use in Part C.</div>
+          <input type="text" id="pA_flag" placeholder="e.g., A disagreement with a colleague about how to handle a shared project…" />
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-next" onclick="goToStep('B')">I've played SuperbMarket — Continue to Part B →</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─── PART B: In-Game Reflection ───────────────────────────── -->
+  <div class="part-panel" id="panel-B">
+    <div class="part-content">
+      <div class="section-heading">Part B · In-Game Reflection</div>
+
+      <div class="card">
+        <h3>Reflecting on a Key Decision</h3>
+        <p>Think back to a decision point you just encountered in SuperbMarket — for example, how Jo responded to Lee arriving late, or how Jo handled the breakroom conversation. Pick the moment that felt most emotionally charged for you.</p>
+      </div>
+
+      <div class="info-box">
+        <strong>Tip:</strong> Use the Emotion Word Bank to push past surface-level labels. "Frustrated" becomes richer when you also identify "disrespected," "helpless," or "conflicted" beneath it.
+      </div>
+
+      <div class="card">
+        <h3>Step 1 — Name the Decision</h3>
+        <div class="prompt-card">
+          <div class="prompt-q">Which decision or scene are you reflecting on? Briefly describe the choice Jo faced, what you decided, and what happened as a result.</div>
+          <textarea id="pB0" placeholder="Describe the moment, your decision, and its outcome for Jo and Lee." oninput="updateCount(this,'cB0')"></textarea>
+          <div class="word-count" id="cB0">0 words</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Step 2 — Dual Emotion Map</h3>
+        <p>Map the emotions on <em>both</em> sides of this moment. This is the heart of perspective-taking: holding two emotional realities at once.</p>
+
+        <button class="wordbank-toggle" onclick="toggleWordbank('wb-B')">
+          📖 Open Emotion Word Bank
+        </button>
+        <div class="wordbank-panel" id="wb-B">
+          <div class="wordbank-cats" id="wbCatsB"></div>
+        </div>
+
+        <div class="emotion-entry-grid">
+          <div class="emotion-column">
+            <h4>🧑‍💼 Jo's emotions (your experience as supervisor)</h4>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 1" id="jo_e1" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="jo_r1" oninput="document.getElementById('jo_rv1').textContent=this.value" />
+                <span class="intensity-val" id="jo_rv1">5</span>
+              </div>
+            </div>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 2" id="jo_e2" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="jo_r2" oninput="document.getElementById('jo_rv2').textContent=this.value" />
+                <span class="intensity-val" id="jo_rv2">5</span>
+              </div>
+            </div>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 3 (dig deeper)" id="jo_e3" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="jo_r3" oninput="document.getElementById('jo_rv3').textContent=this.value" />
+                <span class="intensity-val" id="jo_rv3">5</span>
+              </div>
+            </div>
+          </div>
+          <div class="emotion-column">
+            <h4>👤 Lee's emotions (imagined from their perspective)</h4>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 1" id="lee_e1" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="lee_r1" oninput="document.getElementById('lee_rv1').textContent=this.value" />
+                <span class="intensity-val" id="lee_rv1">5</span>
+              </div>
+            </div>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 2" id="lee_e2" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="lee_r2" oninput="document.getElementById('lee_rv2').textContent=this.value" />
+                <span class="intensity-val" id="lee_rv2">5</span>
+              </div>
+            </div>
+            <div class="emotion-row">
+              <input type="text" placeholder="Emotion 3 (dig deeper)" id="lee_e3" />
+              <div class="intensity-wrap">
+                <input type="range" min="1" max="10" value="5" id="lee_r3" oninput="document.getElementById('lee_rv3').textContent=this.value" />
+                <span class="intensity-val" id="lee_rv3">5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Step 3 — Synthesis</h3>
+        <p>Write freely in response to the prompt below. Use your emotion map as a starting point, but go further — this is your game reflection in your own words.</p>
+
+        <div class="prompt-card">
+          <div class="prompt-q">
+            Drawing on your emotion map, write about both sides of this moment. In your response, cover: the emotions you felt as Jo and those you imagined for Lee (push beyond the grid — what was really underneath?); at least two alternative explanations for Lee's behaviour that go beyond personality or attitude; which emotion — yours or Lee's — surprised you most and what that reveals about your assumptions as a supervisor; and what you would do differently as Jo with this fuller awareness.
+          </div>
+          <textarea id="pB_synth" style="min-height:160px;"
+            placeholder="e.g., As Jo I labelled myself frustrated (7), but sitting with it now there was something closer to disrespected (9) underneath — and perhaps insecurity (5) about my authority. For Lee, I wrote anxious (6) but I think the deeper emotion was shame (8)…&#10;&#10;Two other explanations for Lee's lateness: first, the childcare situation shown in the game — that kind of morning unpredictability is genuinely hard to manage. Second, Lee may have been avoiding the confrontation they sensed was coming…&#10;&#10;The emotion that surprised me most was my own insecurity. I hadn't realised how much I needed to assert control…"
+            oninput="updateCount(this,'cB_synth')"></textarea>
+          <div class="word-count" id="cB_synth">0 words</div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-secondary" onclick="goToStep('A')">← Back to Part A</button>
+        <button class="btn-next" onclick="goToStep('C')">Continue to Transfer Reflection →</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─── PART C: Transfer Reflection (3 prompts) ───────────────── -->
+  <div class="part-panel" id="panel-C">
+    <div class="part-content">
+      <div class="section-heading">Part C · Transfer Reflection</div>
+
+      <div class="card">
+        <h3>🌍 Bringing It into Real Life</h3>
+        <p>Return to the real-life situation you flagged in Part A. Write about it using the same perspective-taking lens you just applied to the game.</p>
+      </div>
+
+      <div class="info-box">
+        <strong>Writing tip:</strong> Don't aim for perfect sentences — go where your mind takes you. Weave in emotion names with intensity ratings as you write (e.g., "I felt guilty (8) because…"). Aim for at least 60–80 words overall.
+      </div>
+
+      <div class="card">
+        <div class="prompt-card">
+          <div class="prompt-q">1. Briefly describe the situation. Who was involved and what happened?</div>
+          <textarea id="tJ1" oninput="updateCount(this,'tcJ1')"></textarea>
+          <div class="word-count" id="tcJ1">0 words</div>
+        </div>
+
+        <div class="prompt-card">
+          <div class="prompt-q">2. What were <em>you</em> feeling in that moment? Name at least three emotions and rate their intensity (1–10). Dig below the surface — what was really going on for you emotionally?</div>
+          <textarea id="tJ2"
+            placeholder="e.g., I told myself I was just annoyed (4), but writing this now I can see I was also hurt (8) and probably anxious (7) about how I come across…"
+            oninput="updateCount(this,'tcJ2')"></textarea>
+          <div class="word-count" id="tcJ2">0 words</div>
+        </div>
+
+        <div class="prompt-card">
+          <div class="prompt-q">3. What might the other person have been feeling, and why might they have behaved as they did? Draw on what you know — or can imagine — about their background, pressures, or circumstances. Try to find something to care about in their situation.</div>
+          <textarea id="tJ3" oninput="updateCount(this,'tcJ3')"></textarea>
+          <div class="word-count" id="tcJ3">0 words</div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-secondary" onclick="goToStep('B')">← Back to Part B</button>
+        <button class="btn-next" onclick="submitSession()">Submit Session ✓</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /screen-session -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 4: CONFIRMATION
+═══════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-wrap">
+    <div class="confirm-icon">✓</div>
+    <h2>Session 1 Submitted</h2>
+    <p>Your reflection has been saved securely under your anonymised participant code. Thank you for writing deeply — this is where the learning happens.</p>
+    <div class="confirm-next-info">
+      <strong>Your next session</strong> (Week 4, Session 2) will unlock in two weeks.<br>
+      You will see it available on your dashboard at the start of Week 4.
+    </div>
+    <button class="btn-primary" style="max-width:260px;" onclick="goTo('screen-dashboard')">← Return to Dashboard</button>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+/* ── Emotion Word Bank data ── */
+const WORDS = {
+  'Joy': ['happy','content','elated','grateful','relieved','hopeful','excited','proud','cheerful','pleased','fulfilled','serene'],
+  'Sadness': ['sad','disappointed','dismayed','dejected','melancholy','regretful','tearful','sorrowful','wistful','despondent'],
+  'Anger': ['angry','frustrated','irritated','resentful','exasperated','indignant','furious','contemptuous','bitter','hostile'],
+  'Anxiety / Fear': ['anxious','worried','cautious','nervous','apprehensive','uneasy','tense','dread','overwhelmed','insecure'],
+  'Shame / Guilt': ['ashamed','embarrassed','guilty','remorseful','humiliated','self-conscious','inadequate'],
+  'Disgust': ['disgusted','appalled','revolted','offended','disrespected','repulsed'],
+  'Surprise': ['surprised','astonished','shocked','startled','confused','unsettled'],
+  'Complex': ['conflicted','ambivalent','numb','hollow','disconnected','pressured','powerless','defensive','vulnerable']
+};
+
+function buildWordbank(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el || el.children.length > 0) return;
+  Object.entries(WORDS).forEach(([cat, words]) => {
+    const div = document.createElement('div');
+    div.className = 'wordbank-cat';
+    div.innerHTML = `<div class="cat-label">${cat}</div><div class="word-chips">${words.map(w=>`<span class="word-chip" onclick="copyWord('${w}')">${w}</span>`).join('')}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function toggleWordbank(id) {
+  const panel = document.getElementById(id);
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) buildWordbank('wbCatsB');
+}
+
+async function copyWord(w) {
+  try { await navigator.clipboard.writeText(w); } catch(e) {}
+  event.target.style.background = '#bfdbfe';
+  setTimeout(()=>{ event.target.style.background = ''; }, 600);
+}
+
+/* ── Word count ── */
+function updateCount(el, countId) {
+  const words = el.value.trim() ? el.value.trim().split(/\s+/).length : 0;
+  document.getElementById(countId).textContent = words + ' word' + (words !== 1 ? 's' : '');
+}
+
+/* ── Login ── */
+function doLogin() {
+  const code = document.getElementById('participantCode').value.trim();
+  if (!code) { alert('Please enter your participant code to continue.'); return; }
+  document.getElementById('participantBadge').innerHTML = `Participant <strong>${code}</strong>`;
+  document.getElementById('biwStrip').style.display = '';
+  document.getElementById('siteHeader').style.display = '';
+  goTo('screen-dashboard');
+}
+
+/* ── Navigation ── */
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startSession() { goTo('screen-session'); goToStep('A'); }
+
+function goToStep(step) {
+  const steps = ['A','B','C'];
+  const current = steps.indexOf(step);
+  steps.forEach((s, i) => {
+    const el = document.getElementById('step-' + s);
+    el.classList.remove('active','done');
+    if (i < current) el.classList.add('done');
+    else if (i === current) el.classList.add('active');
+  });
+  document.querySelectorAll('.part-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + step).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function submitSession() { goTo('screen-confirm'); }
+
+/* ── Enter key on login ── */
+document.getElementById('participantCode').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
